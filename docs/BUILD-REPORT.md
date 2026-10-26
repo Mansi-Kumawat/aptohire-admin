@@ -1,3 +1,17 @@
+# Current status addendum — 26 October 2026
+
+> This addendum supersedes older navigation, score-layout, and test-count statements later in this report. The remaining text is retained as historical build notes.
+
+- Back-navigation buttons from Approvals, Reviews, and Tickets are removed; use the main sidebar/queue layout.
+- The desktop sidebar now has a keyboard-accessible collapse/expand control, slightly larger navigation text, and retains the existing tablet icon rail and mobile drawer/tab navigation.
+- The left promotional panel on the sign-in screen has more breathing room via increased horizontal padding; the sign-in card remains in its original centered position, and mobile styling is unchanged.
+- The ticket score ring is in normal document flow and does not overlap the appeal title. Review-only score presentation is scoped to the Reviews panel.
+- Staff Directory is read-only; it has no staff invitation, role-edit, disable, or delete workflow. There is no general student directory.
+- Latest verified checks: typecheck and lint passed; 30 unit tests passed; 4 Playwright E2E tests passed (including sidebar collapse and sign-in spacing); production build and source/build security scan passed.
+- The shared backend contract is not present in this repository. The Supabase adapter is provisional; live cross-portal integration and production deployment are not verified.
+
+---
+
 ### ✅ Admin console build report
 
 **Stack used:** React 18.3.1 · TypeScript 5.9.2 (strict) · Vite 8.3.4 · React Router 7.18.4 · TanStack Query 5.87.1 · Supabase JS 2.57.4 · Tailwind CSS 3.4.19 · Vitest 4.1.11 · Playwright 1.64.1.

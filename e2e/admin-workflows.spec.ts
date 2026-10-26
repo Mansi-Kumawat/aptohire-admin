@@ -10,6 +10,8 @@ async function enterAdmin(page: import('@playwright/test').Page): Promise<void> 
   await page.goto('/login');
   await page.getByRole('button', { name: 'Continue with demo account' }).click();
   await page.getByLabel('Six-digit code').fill('123456');
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('link', { name: /Approvals/ }).first().click();
   await expect(page.getByRole('heading', { name: 'Approvals' })).toBeVisible({ timeout: 10_000 });
 }
 

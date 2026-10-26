@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const roleSchema = z.enum(['admin', 'student', 'university', 'organization']);
 export type Role = z.infer<typeof roleSchema>;
-export type AppArea = 'approvals' | 'reviews' | 'tickets' | 'runs' | 'settings' | 'library' | 'audit-log' | 'users' | 'reports' | 'notifications' | 'account' | 'help';
+export type AppArea = 'dashboard' | 'approvals' | 'reviews' | 'tickets' | 'runs' | 'settings' | 'library' | 'audit-log' | 'users' | 'reports' | 'notifications' | 'account' | 'help';
 export type AppConfig = {
   AGENT_MODE: 'mock' | 'direct' | 'n8n';
   PASS_MARK: number;

@@ -1,10 +1,65 @@
-import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Check, CircleAlert, X } from 'lucide-react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { Check, ChevronDown, CircleAlert, X } from 'lucide-react';
 
 export function StatusChip({ status }: { status: string }) {
   const kind = status.toLowerCase().replaceAll(' ', '-');
   const icon = ['failed', 'timeout', 'rejected', 'overdue'].includes(kind) ? <CircleAlert size={14} aria-hidden="true" /> : ['approved', 'confirmed', 'succeeded', 'active', 'decided'].includes(kind) ? <Check size={14} aria-hidden="true" /> : null;
   return <span className={`status-chip ${kind}`}>{icon}{status}</span>;
+}
+
+export type DropdownOption = { value: string; label: string; disabled?: boolean };
+
+export function DropdownField({ value, options, onChange, ariaLabel, id, className = '' }: {
+  value: string; options: DropdownOption[]; onChange: (value: string) => void; ariaLabel: string; id?: string; className?: string;
+}) {
+  const generatedId = useId(); const baseId = id ?? `select-${generatedId}`;
+  const rootRef = useRef<HTMLDivElement>(null); const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [open, setOpen] = useState(false); const [activeIndex, setActiveIndex] = useState(0);
+  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
+  const selected = options[selectedIndex];
+  useEffect(() => {
+    if (!open) return undefined;
+    const outside = (event: PointerEvent): void => { if (!rootRef.current?.contains(event.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
+  }, [open]);
+  useEffect(() => {
+    if (open) requestAnimationFrame(() => optionRefs.current[activeIndex]?.focus());
+  }, [open, activeIndex]);
+  const enabled = options.map((option, index) => option.disabled ? -1 : index).filter((index) => index >= 0);
+  const choose = (index: number): void => {
+    const option = options[index];
+    if (!option || option.disabled) return;
+    onChange(option.value); setOpen(false); triggerRef.current?.focus();
+  };
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>): void => {
+    if (!open && ['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
+      event.preventDefault(); setActiveIndex(selectedIndex); setOpen(true); return;
+    }
+    if (!open) return;
+    if (event.key === 'Escape') { event.preventDefault(); setOpen(false); triggerRef.current?.focus(); return; }
+    if (event.key === 'Tab') { setOpen(false); return; }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault(); const current = Math.max(0, enabled.indexOf(activeIndex));
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      setActiveIndex(enabled[(current + step + enabled.length) % enabled.length] ?? selectedIndex); return;
+    }
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault(); setActiveIndex(event.key === 'Home' ? enabled[0] ?? selectedIndex : enabled.at(-1) ?? selectedIndex); return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(activeIndex); }
+  };
+  return <div className={`dropdown-field ${className}`.trim()} ref={rootRef}>
+    <button ref={triggerRef} id={baseId} className="select-control" type="button" role="combobox" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? `${baseId}-options` : undefined} aria-activedescendant={open ? `${baseId}-option-${activeIndex}` : undefined} onClick={() => { if (!open) { setActiveIndex(selectedIndex); setOpen(true); } else setOpen(false); }} onKeyDown={handleKeyDown}>
+      <span>{selected?.label ?? 'Choose an option'}</span><ChevronDown className="select-chevron" size={16} aria-hidden="true"/>
+    </button>
+    {open ? <div id={`${baseId}-options`} className="select-menu" role="listbox" aria-label={ariaLabel}>
+      {options.map((option, index) => <button ref={(element) => { optionRefs.current[index] = element; }} id={`${baseId}-option-${index}`} className="select-option" type="button" role="option" aria-selected={option.value === value} aria-disabled={option.disabled || undefined} tabIndex={activeIndex === index ? 0 : -1} disabled={option.disabled} key={option.value} onMouseEnter={() => setActiveIndex(index)} onClick={() => choose(index)} onKeyDown={handleKeyDown}>
+        <span>{option.label}</span>{option.value === value ? <Check size={16} aria-hidden="true"/> : null}
+      </button>)}
+    </div> : null}
+  </div>;
 }
 
 export function Modal({ title, children, onClose, footer }: { title: string; children: ReactNode; onClose: () => void; footer?: ReactNode }) {

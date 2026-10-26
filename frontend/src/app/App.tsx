@@ -8,7 +8,10 @@ import { Providers } from './providers';
 import '../styles/tokens.css';
 import '../styles/globals.css';
 import '../styles/modern-ui.css';
+import '../styles/premium-ux.css';
+import '../styles/green-spectrum.css';
 
+const Dashboard = lazy(() => import('../pages/AdminPages').then((module) => ({ default: module.DashboardPage })));
 const Approvals = lazy(() => import('../pages/AdminPages').then((module) => ({ default: module.ApprovalsPage })));
 const Reviews = lazy(() => import('../pages/AdminPages').then((module) => ({ default: module.ReviewsPage })));
 const Tickets = lazy(() => import('../pages/AdminPages').then((module) => ({ default: module.TicketsPage })));
@@ -30,7 +33,8 @@ const router = createBrowserRouter([
   { path: '/', element: <AccessGate/>, children: [
     { path: 'mfa/setup', element: <><Helmet><title>Set up two-step verification · AptoHire Admin</title><meta name="robots" content="noindex,nofollow"/></Helmet><MfaSetupPage/></> }, { path: 'mfa/verify', element: <><Helmet><title>Verify sign-in · AptoHire Admin</title><meta name="robots" content="noindex,nofollow"/></Helmet><MfaVerifyPage/></> },
     { element: <AppShell/>, children: [
-      { index: true, element: <Navigate to="/approvals" replace/> },
+      { index: true, element: <Navigate to="/dashboard" replace/> },
+      { path: 'dashboard', element: <Suspense fallback={<LoadingPage/>}><Dashboard/></Suspense> },
       { path: 'approvals', element: <Suspense fallback={<LoadingPage/>}><Approvals/></Suspense> },
       { path: 'approvals/:type/:id', element: <Suspense fallback={<LoadingPage/>}><Approvals/></Suspense> },
       { path: 'reviews', element: <Suspense fallback={<LoadingPage/>}><Reviews/></Suspense> },
@@ -49,7 +53,7 @@ const router = createBrowserRouter([
       { path: 'help', element: <Suspense fallback={<LoadingPage/>}><Help/></Suspense> },
     ] },
   ] },
-  { path: '*', element: <><Helmet><title>Not found · AptoHire Admin</title><meta name="robots" content="noindex,nofollow"/></Helmet><div className="wrong-role"><section className="wrong-role-box"><h1>That page doesn’t exist.</h1><p className="muted">Check the address or return to the admin console.</p><a className="button button-primary" href="/approvals">Go home</a></section></div></> },
+  { path: '*', element: <><Helmet><title>Not found · AptoHire Admin</title><meta name="robots" content="noindex,nofollow"/></Helmet><div className="wrong-role"><section className="wrong-role-box"><h1>That page doesn’t exist.</h1><p className="muted">Check the address or return to the admin console.</p><a className="button button-primary" href="/dashboard">Go to dashboard</a></section></div></> },
 ]);
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
