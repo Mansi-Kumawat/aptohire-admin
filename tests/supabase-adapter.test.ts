@@ -46,8 +46,8 @@ describe('Supabase Admin adapter contract mapping', () => {
 
   it('serializes authenticator enrollment, cleans up pending factors, and supplies a unique friendly name', async () => {
     const listFactors = vi.fn()
-      .mockResolvedValueOnce({ data: { all: [], totp: [{ id: 'pending-factor', status: 'unverified' }] }, error: null })
-      .mockResolvedValueOnce({ data: { all: [], totp: [{ id: 'verified-factor', status: 'verified' }, { id: 'pending-factor', status: 'unverified' }] }, error: null });
+      .mockResolvedValueOnce({ data: { all: [{ id: 'pending-factor', factor_type: 'totp', status: 'unverified' }, { id: 'phone-factor', factor_type: 'phone', status: 'unverified' }], totp: [] }, error: null })
+      .mockResolvedValueOnce({ data: { all: [{ id: 'verified-factor', factor_type: 'totp', status: 'verified' }, { id: 'pending-factor', factor_type: 'totp', status: 'unverified' }], totp: [{ id: 'verified-factor', status: 'verified' }] }, error: null });
     const unenroll = vi.fn(async () => ({ data: {}, error: null }));
     const enroll = vi.fn(async (_params: { factorType: 'totp'; issuer: string; friendlyName?: string }) => ({ data: { id: 'new-factor', totp: { qr_code: 'data:image/svg+xml,test', secret: 'test-secret' } }, error: null }));
     const challenge = vi.fn(async () => ({ data: { id: 'challenge-1' }, error: null }));

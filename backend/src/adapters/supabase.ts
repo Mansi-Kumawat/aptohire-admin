@@ -77,7 +77,7 @@ export class SupabaseBackend implements Backend {
     mfaStatus: async (): Promise<'needs-enroll' | 'needs-challenge' | 'ready'> => {
       const [factors, assurance] = await Promise.all([this.client.auth.mfa.listFactors(), this.client.auth.mfa.getAuthenticatorAssuranceLevel()]);
       if (factors.error || assurance.error) throw new Error('NETWORK_ERROR');
-      const verified = factors.data.totp.some((factor) => factor.status === 'verified');
+      const verified = factors.data.all.some((factor) => factor.factor_type === 'totp' && factor.status === 'verified');
       if (!verified) return 'needs-enroll';
       return assurance.data.currentLevel === 'aal2' ? 'ready' : 'needs-challenge';
     },
@@ -87,8 +87,9 @@ export class SupabaseBackend implements Backend {
       const request = (async (): Promise<MfaEnrollment> => {
         const existing = await this.client.auth.mfa.listFactors();
         if (existing.error) throw new Error(errorText(existing.error));
-        if (existing.data.totp.some((factor) => factor.status === 'verified')) throw new Error('MFA_ALREADY_ENROLLED');
-        for (const factor of existing.data.totp.filter((item) => item.status !== 'verified')) {
+        const totpFactors = existing.data.all.filter((factor) => factor.factor_type === 'totp');
+        if (totpFactors.some((factor) => factor.status === 'verified')) throw new Error('MFA_ALREADY_ENROLLED');
+        for (const factor of totpFactors.filter((item) => item.status === 'unverified')) {
           const removed = await this.client.auth.mfa.unenroll({ factorId: factor.id });
           if (removed.error) throw new Error(errorText(removed.error));
         }
@@ -108,7 +109,8 @@ export class SupabaseBackend implements Backend {
     verifyMfa: async (code: string): Promise<void> => {
       const factors = await this.client.auth.mfa.listFactors();
       if (factors.error) throw new Error(errorText(factors.error));
-      const factor = factors.data.totp.find((item) => item.status === 'verified') ?? factors.data.totp.find((item) => item.status !== 'verified');
+      const totpFactors = factors.data.all.filter((item) => item.factor_type === 'totp');
+      const factor = totpFactors.find((item) => item.status === 'verified') ?? totpFactors.find((item) => item.status === 'unverified');
       if (!factor) throw new Error('MFA_REQUIRED');
       const challenge = await this.client.auth.mfa.challenge({ factorId: factor.id });
       if (challenge.error) throw new Error(errorText(challenge.error));
