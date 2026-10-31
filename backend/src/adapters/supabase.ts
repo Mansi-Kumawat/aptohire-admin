@@ -46,6 +46,10 @@ const confidenceLabel = (value: unknown): ReviewItem['confidence'] => {
   const confidence = valueNum(value);
   return confidence >= 0.75 ? 'High' : confidence >= 0.5 ? 'Medium' : 'Low';
 };
+type MfaEnrollment = { qrCode: string; secret: string };
+let mfaEnrollmentPromise: Promise<MfaEnrollment> | null = null;
+let cachedMfaEnrollment: MfaEnrollment | null = null;
+function clearMfaEnrollmentCache(): void { mfaEnrollmentPromise = null; cachedMfaEnrollment = null; }
 
 export class SupabaseBackend implements Backend {
   constructor(private readonly client: SupabaseClient) {}
@@ -57,6 +61,7 @@ export class SupabaseBackend implements Backend {
       return { id: data.user.id, email: data.user.email ?? email };
     },
     signOut: async (): Promise<void> => {
+      clearMfaEnrollmentCache();
       const { error } = await this.client.auth.signOut({ scope: 'global' });
       if (error) { await this.client.auth.signOut({ scope: 'local' }); throw new Error(errorText(error)); }
     },
@@ -77,25 +82,39 @@ export class SupabaseBackend implements Backend {
       return assurance.data.currentLevel === 'aal2' ? 'ready' : 'needs-challenge';
     },
     beginMfaEnrollment: async (): Promise<{ qrCode: string; secret: string }> => {
-      const existing = await this.client.auth.mfa.listFactors();
-      if (existing.error) throw new Error(errorText(existing.error));
-      for (const factor of existing.data.totp.filter((item) => item.status !== 'verified')) {
-        const removed = await this.client.auth.mfa.unenroll({ factorId: factor.id });
-        if (removed.error) throw new Error(errorText(removed.error));
+      if (cachedMfaEnrollment) return cachedMfaEnrollment;
+      if (mfaEnrollmentPromise) return mfaEnrollmentPromise;
+      const request = (async (): Promise<MfaEnrollment> => {
+        const existing = await this.client.auth.mfa.listFactors();
+        if (existing.error) throw new Error(errorText(existing.error));
+        if (existing.data.totp.some((factor) => factor.status === 'verified')) throw new Error('MFA_ALREADY_ENROLLED');
+        for (const factor of existing.data.totp.filter((item) => item.status !== 'verified')) {
+          const removed = await this.client.auth.mfa.unenroll({ factorId: factor.id });
+          if (removed.error) throw new Error(errorText(removed.error));
+        }
+        const friendlyName = `AptoHire Admin ${crypto.randomUUID().slice(0, 8)}`;
+        const { data, error } = await this.client.auth.mfa.enroll({ factorType: 'totp', issuer: 'AptoHire Admin', friendlyName });
+        if (error) throw new Error(errorText(error));
+        return { qrCode: data.totp.qr_code, secret: data.totp.secret };
+      })();
+      mfaEnrollmentPromise = request;
+      try {
+        cachedMfaEnrollment = await request;
+        return cachedMfaEnrollment;
+      } finally {
+        if (mfaEnrollmentPromise === request) mfaEnrollmentPromise = null;
       }
-      const { data, error } = await this.client.auth.mfa.enroll({ factorType: 'totp', issuer: 'AptoHire Admin' });
-      if (error) throw new Error(errorText(error));
-      return { qrCode: data.totp.qr_code, secret: data.totp.secret };
     },
     verifyMfa: async (code: string): Promise<void> => {
       const factors = await this.client.auth.mfa.listFactors();
       if (factors.error) throw new Error(errorText(factors.error));
-      const factor = factors.data.totp.find((item) => item.status !== 'verified') ?? factors.data.totp[0];
+      const factor = factors.data.totp.find((item) => item.status === 'verified') ?? factors.data.totp.find((item) => item.status !== 'verified');
       if (!factor) throw new Error('MFA_REQUIRED');
       const challenge = await this.client.auth.mfa.challenge({ factorId: factor.id });
       if (challenge.error) throw new Error(errorText(challenge.error));
       const verified = await this.client.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.data.id, code });
       if (verified.error) throw new Error(errorText(verified.error));
+      clearMfaEnrollmentCache();
     },
     requestPasswordReset: async (email: string): Promise<void> => {
       const normalizedEmail = z.string().email().parse(email.trim());

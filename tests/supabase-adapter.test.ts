@@ -44,6 +44,29 @@ describe('Supabase Admin adapter contract mapping', () => {
     expect(invokes).toEqual([{ name: 'admin-review-audit', body: { audit_id: 'audit-1', decision: 'confirm', note: 'Confirmed by admin reviewer.' } }]);
   });
 
+  it('serializes authenticator enrollment, cleans up pending factors, and supplies a unique friendly name', async () => {
+    const listFactors = vi.fn()
+      .mockResolvedValueOnce({ data: { all: [], totp: [{ id: 'pending-factor', status: 'unverified' }] }, error: null })
+      .mockResolvedValueOnce({ data: { all: [], totp: [{ id: 'verified-factor', status: 'verified' }, { id: 'pending-factor', status: 'unverified' }] }, error: null });
+    const unenroll = vi.fn(async () => ({ data: {}, error: null }));
+    const enroll = vi.fn(async (_params: { factorType: 'totp'; issuer: string; friendlyName?: string }) => ({ data: { id: 'new-factor', totp: { qr_code: 'data:image/svg+xml,test', secret: 'test-secret' } }, error: null }));
+    const challenge = vi.fn(async () => ({ data: { id: 'challenge-1' }, error: null }));
+    const verify = vi.fn(async () => ({ data: { access_token: 'test-token' }, error: null }));
+    const mfaClient = { auth: { mfa: { listFactors, unenroll, enroll, challenge, verify } } } as unknown as SupabaseClient;
+    const backend = new SupabaseBackend(mfaClient);
+
+    const [first, second] = await Promise.all([backend.auth.beginMfaEnrollment(), backend.auth.beginMfaEnrollment()]);
+    expect(first).toEqual(second);
+    expect(listFactors).toHaveBeenCalledTimes(1);
+    expect(unenroll).toHaveBeenCalledWith({ factorId: 'pending-factor' });
+    expect(enroll).toHaveBeenCalledTimes(1);
+    expect(enroll.mock.calls[0]?.[0]).toMatchObject({ factorType: 'totp', issuer: 'AptoHire Admin', friendlyName: expect.stringMatching(/^AptoHire Admin /) });
+
+    await backend.auth.verifyMfa('123456');
+    expect(challenge).toHaveBeenCalledWith({ factorId: 'verified-factor' });
+    expect(verify).toHaveBeenCalledWith({ factorId: 'verified-factor', challengeId: 'challenge-1', code: '123456' });
+  });
+
   it('maps ticket details and keeps identity columns out of direct reads', async () => {
     const calls: { table: string; columns: string }[] = [];
     const backend = new SupabaseBackend(clientFixture({

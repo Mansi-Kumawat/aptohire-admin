@@ -47,11 +47,15 @@ This is a **demo-environment** checklist for connecting the Admin portal to the 
 ## Smoke test (no consequential writes)
 
 1. Open the HTTPS Admin URL in a private/incognito window.
-2. Choose the Admin demo email on the login page, then enter the owner's password directly in the browser. Never send the password or TOTP code in chat.
+2. Click **Use demo email**. With the configured `VITE_DEMO_PASSWORD`, the button now fills both the Admin demo email and password; then click **Sign in**. If the password stays blank, confirm that Vercel has the existing demo variable and redeploy after any variable change. Never send the password or TOTP code in chat.
 3. First sign-in: scan the displayed QR code with the Admin's authenticator app, then enter the current six-digit code. If the factor is already enrolled, complete the MFA challenge instead.
 4. Confirm the Dashboard loads and the session is accepted as an Admin only after the MFA check.
 5. Open **Approvals**, **Staff directory**, and **Audit log** (or Reports). Confirm each either shows real rows or a clear empty state, with no browser-console errors. Do not approve/reject applications, alter AI settings, decide appeals, or retry runs as part of this smoke test.
 6. Record only the page name and safe error code if something fails. Do not send passwords, keys, tokens, student data, screenshots with personal data, or raw request headers.
+
+## If MFA setup reports a factor-name conflict
+
+The updated Admin client removes stale **unverified** TOTP factors before enrollment, assigns a unique friendly name to each new enrollment, prevents duplicate verification requests, and uses an already-verified factor for a challenge. If a previously enrolled factor is verified but the authenticator app does not have its matching secret, stop retrying codes: the backend owner must reset that account's factor through the approved Supabase Auth/admin recovery process, then the Admin can enroll again. Do not delete MFA rows with SQL or weaken the `aal2` requirement.
 
 ## Step 2 gate and rollback
 
