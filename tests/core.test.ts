@@ -21,7 +21,7 @@ describe('working-day service targets', () => {
 });
 
 describe('configuration validation', () => {
-  it('accepts safe boundary values and rejects out of range values', () => { expect(passMarkSchema.safeParse(99).success).toBe(true); expect(passMarkSchema.safeParse(100).success).toBe(false); expect(borderlineSchema.safeParse([40,60]).success).toBe(true); expect(borderlineSchema.safeParse([60,40]).success).toBe(false); expect(videoLimitSchema.safeParse(50).success).toBe(true); expect(durationSchema.safeParse(190).success).toBe(true); expect(dailyCapSchema.safeParse(0).success).toBe(true); });
+  it('accepts safe boundary values and rejects out of range values', () => { expect(passMarkSchema.safeParse(99).success).toBe(true); expect(passMarkSchema.safeParse(100).success).toBe(false); expect(borderlineSchema.safeParse([40,60]).success).toBe(true); expect(borderlineSchema.safeParse([60,40]).success).toBe(false); expect(videoLimitSchema.safeParse(50).success).toBe(true); expect(durationSchema.safeParse(190).success).toBe(true); expect(dailyCapSchema.safeParse(0).success).toBe(false); expect(dailyCapSchema.safeParse(1).success).toBe(true); });
   it('requires exact typed confirmation', () => { expect(matchesTypedConfirm('PAUSE','PAUSE')).toBe(true); expect(matchesTypedConfirm('PAUSE','pause')).toBe(false); });
 });
 

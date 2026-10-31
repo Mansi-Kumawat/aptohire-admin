@@ -26,19 +26,19 @@ export type ReviewItem = {
   summary: string; rationale: string; evidence: string; originalReviewer?: string;
 };
 export type Ticket = {
-  id: string; reference: string; skill: string; skillId?: string; score: number; reason: string; status: 'open' | 'ack' | 'in_review' | 'decided';
+  id: string; reference: string; skill: string; skillId?: string; score: number; reason: string; evidence?: string; status: 'open' | 'ack' | 'in_review' | 'decided';
   assignee?: string; assigneeId?: string; originalReviewer: string; originalReviewerId?: string;
   createdAt: string; decision?: 'upheld' | 'overturned' | 'adjusted';
 };
 export type AgentRun = {
   id: string; kind: string; mode: 'mock' | 'direct' | 'n8n'; status: 'succeeded' | 'failed' | 'timeout' | 'running' | 'queued';
-  stage: string; attempt: number; latency: number; tokensIn: number; tokensOut: number; reference: string; createdAt: string; error?: string;
+  stage: string; attempt: number; latency: number; tokensIn: number; tokensOut: number; tokenEstimate?: number; reference: string; createdAt: string; error?: string;
 };
 export type Staff = { id: string; name: string; role: string };
 export type AuditEvent = { id: string; at: string; actor: string; role: string; action: string; target: string; detail: string; sensitive?: boolean };
 export type NotificationItem = { id: string; title: string; body: string; at: string; readAt?: string; href?: string };
 
-export const decisionSchema = z.object({ id: z.string().min(1), subjectId: z.string().min(1).optional(), type: z.enum(['university', 'organization']), action: z.enum(['approve', 'reject']), note: z.string().trim().max(600).optional() }).strict();
+export const decisionSchema = z.object({ id: z.string().min(1), subjectId: z.string().min(1).optional(), type: z.enum(['university', 'organization']), action: z.enum(['approve', 'reject']), note: z.string().trim().max(500).optional() }).strict();
 export const configChangeSchema = z.object({ key: z.enum(['AGENT_MODE', 'PASS_MARK', 'BORDERLINE', 'REQUIRE_VIDEO', 'VIDEO_MAX_MB', 'VIDEO_MAX_SECONDS', 'AI_DAILY_CAP_PER_USER', 'AI_KILL_SWITCH']), value: z.unknown(), reason: z.string().optional() });
 export type DecisionInput = z.infer<typeof decisionSchema>;
 export type ConfigChangeInput = z.infer<typeof configChangeSchema>;

@@ -1,6 +1,6 @@
 # AptoHire Admin console
 
-**AptoHire — Hired for what you can do.** This repository is the independent admin console for AptoHire staff. It is a Vite + React + TypeScript app. It runs locally with fictional sample data and can be connected to the shared Supabase project after the backend contract is available.
+**AptoHire — Hired for what you can do.** This repository is the independent admin console for AptoHire staff. It is a Vite + React + TypeScript app. It runs locally with fictional sample data and has a source-level adapter audit against the current local backend schemas and migrations. Hosted sign-in, MFA, and live-data acceptance still require the owner-run Step 2 check.
 
 This is the most privileged AptoHire web surface. It requires an admin account and two-step verification. Reviews hide student identity. The console has no public account creation and no impersonation. A shared responsive visual system keeps the operational pages consistent across desktop, tablet, and mobile, with restrained transitions, keyboard-visible focus, reduced-motion support, and styled form controls.
 
@@ -18,7 +18,7 @@ The admin URL is not a secret. Security depends on authentication, two-step veri
 - `tests/` contains unit and component test setup.
 - `public/` contains the supplied AptoHire wordmark/icon assets, favicon, and crawler rules.
 
-React components use the `Backend` interface; they do not import the Supabase SDK or call `fetch`. The mock adapter is used by default. The Supabase adapter must be checked against `docs/CONTRACT.md` before production data is enabled.
+React components use the `Backend` interface; they do not import the Supabase SDK or call `fetch`. The mock adapter is used by default. The Supabase adapter has a source-level review and local payload/projection tests; do not treat those as hosted acceptance or production readiness.
 
 ## 3. Prerequisites
 
@@ -49,9 +49,9 @@ Other fictional role examples are `aarav@unia.edu.test`, `tpo@unia.edu.test`, an
 
 ## 5. Connect to the shared Supabase project
 
-1. Copy the backend team's current `docs/CONTRACT.md` into this repository at `docs/CONTRACT.md`.
-2. Review the exact table, view, column, and Edge Function names. The contract takes precedence over assumptions in the adapter.
-3. Add only the Supabase project URL and public anon/publishable key to `.env.local`:
+The Admin adapter has been compared with the local backend schemas, migrations, Edge Function validators, and the frozen Admin contract. It uses the public Supabase URL/key and the signed-in Admin JWT; it does not use a service-role credential. For the current Runbook demo, follow [`docs/ADMIN-STEP2-DEPLOY.md`](./docs/ADMIN-STEP2-DEPLOY.md) rather than copying or overwriting contract files or applying migrations.
+
+For a local-only real-mode check, use `.env.local` with the local/demo Supabase project's values:
 
 ```dotenv
 VITE_APP_ENV=local
@@ -61,14 +61,13 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-public-anon-key
 ```
 
-4. Run `npm run db:types` after setting `SUPABASE_PROJECT_REF` in your shell, then reconcile the adapter mappers with the contract.
-5. Confirm that admin database policies require an admin role and the required assurance level, and that each admin Edge Function independently checks authorization and writes its audit event.
+Use only a disposable/local/demo backend. Hosted production integration is not confirmed by this source audit. The backend owner is responsible for migrations, RLS, Storage policies, Edge Functions and their deployment; this Admin repository does not make hosted backend changes.
 
-**Never put a service-role key, secret key, or privileged server credential in this project.** The browser uses the public key and the signed-in admin session only. The shared backend owns migrations, RLS, storage policies, and Edge Functions; this repository does not modify them.
+**Never put a service-role key, secret key, or privileged server credential in this project.** The browser uses only the public key and the signed-in Admin session.
 
 ## 6. First admin account and authenticator
 
-There is no sign-up route. Create the first admin manually by following the shared backend's `scripts/create-admin.sql` procedure. Add `https://admin.aptohire.com/**` and `http://localhost:5177/**` to Supabase **Authentication → URL Configuration**. On first sign-in, the admin must enrol a TOTP authenticator. Keep the recovery secret somewhere safe. If it is lost, another admin must reset the factor.
+There is no sign-up route. The backend owner creates the first admin manually using the shared backend's approved procedure. Add the exact deployed Admin reset callback and any deliberate local URL to Supabase **Authentication → URL Configuration → Redirect URLs**; preserve the shared project's existing global Site URL. For demo settings and exact Vercel steps, see [`docs/ADMIN-STEP2-DEPLOY.md`](./docs/ADMIN-STEP2-DEPLOY.md). On first sign-in, the admin must enrol a TOTP authenticator. Keep the recovery secret somewhere safe. If it is lost, another admin must reset the factor.
 
 The UI gate order is session → role → two-step verification → admin pages. A non-admin account is refused before queue data is requested. Real authorization must still be enforced by the backend; the UI is not an authorization boundary.
 
@@ -95,7 +94,9 @@ The UI gate order is session → role → two-step verification → admin pages.
 5. In **Settings**, pause or resume AI only after reading the consequence. Sensitive settings need a fresh authenticator check. The kill switch blocks new AI reviews and project assignments; student drafts remain.
 6. Use **Audit log** as a read-only operational record. Audit-log and report CSV exports require fresh authenticator verification; treat exports as sensitive. All configuration saves also require fresh verification.
 
-## 9. Deploy to Vercel
+## 9. Production launch to Vercel (not the Runbook demo)
+
+For the current two-hour demo's **Step 2**, follow [`docs/ADMIN-STEP2-DEPLOY.md`](./docs/ADMIN-STEP2-DEPLOY.md) instead. The steps below are for an actual non-demo production launch.
 
 1. Create a **separate Vercel project** for this repository; do not combine it with the other four portals.
 2. Set the root directory to this repository and use the included `vercel.json` rewrites and security headers.

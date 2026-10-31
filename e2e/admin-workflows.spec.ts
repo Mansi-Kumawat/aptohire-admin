@@ -15,7 +15,7 @@ async function enterAdmin(page: import('@playwright/test').Page): Promise<void> 
   await expect(page.getByRole('heading', { name: 'Approvals' })).toBeVisible({ timeout: 10_000 });
 }
 
-test('mock admin workflows enforce reviewer separation and step-up for exports, settings, and reset', async ({ page }) => {
+test('mock admin workflows enforce reviewer separation and step-up for exports and settings while hiding unsupported reset', async ({ page }) => {
   await enterAdmin(page);
   await page.getByRole('button', { name: /Uni C/ }).click();
   await page.getByRole('button', { name: 'Approve', exact: true }).click();
@@ -97,17 +97,6 @@ test('mock admin workflows enforce reviewer separation and step-up for exports, 
   await page.getByRole('button', { name: 'Verify and save' }).click();
   await expect(page.getByText('AI is paused. New projects and reviews are blocked.')).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Demo data' }).click();
-  const resetDialog = page.getByRole('dialog');
-  await expect(resetDialog).toContainText('Reset demo data?');
-  await expectAccessible(page, 'demo reset typed confirmation dialog');
-  await expect(resetDialog.getByRole('button', { name: 'Reset' })).toBeDisabled();
-  await resetDialog.getByLabel(/Type RESET/).fill('RESET');
-  await resetDialog.getByRole('button', { name: 'Reset' }).click();
-  const resetStepUp = page.getByRole('dialog');
-  await expect(resetStepUp).toContainText('Confirm with your authenticator');
-  await expectAccessible(page, 'demo reset step-up dialog');
-  await resetStepUp.getByLabel('Authenticator code').fill('123456');
-  await resetStepUp.getByRole('button', { name: 'Verify and save' }).click();
-  await expect(page.locator('.toast')).toContainText('Demo data reset.');
+  await expect(page.getByRole('tab', { name: 'Demo data' })).toHaveCount(0);
+  await expect(page.getByText(/reset.*not implemented|not available/i)).toHaveCount(0);
 });
